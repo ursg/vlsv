@@ -50,6 +50,8 @@
  * timestep                      Current value of time step, VisIt shows this value as 'Timestep'.
  */
 
+
+
 namespace vlsv {
 
    class Writer {
@@ -92,7 +94,40 @@ namespace vlsv {
       bool writeWithReduction(const std::string& arrayName,const std::map<std::string,std::string>& attribs,
 			      const uint64_t& arraySize,T* array,MPI_Op operation);
    
+
+      int getBuffer()
+      {
+        return bufferSize;
+      }
+      void setBuffer(uint64_t bSize)
+      {
+
+        if(bufferSize > 0)
+        {
+          delete outputBuffer;
+        }
+        if(bSize >= std::numeric_limits<int >::max())
+        {
+          std::cout << "buffered I/O not supported for larger than 2GB buffers" << std::endl;
+          bufferTop = 0;
+          bufferSize = 0;
+          return;
+        }
+        bufferTop = 0;
+        bufferSize = bSize;
+        outputBuffer = new char[bufferSize];
+      }
+ 
     private:
+      void emptyBuffer(MPI_Comm comm);
+      void addToBuffer(char * data, int size, MPI_Offset fileOffset, MPI_Datatype datatype, MPI_Comm comm);
+
+      char* outputBuffer;
+      int bufferSize;
+      int bufferTop;
+
+      std::vector<std::pair<int, int>> startSize;
+      std::vector<MPI_Offset> fileOffsets;
 
       uint64_t arraySize;                     /**< Number of array elements this process will write.*/
       int* blockLengths;                      /**< Used in creation of an MPI_Struct in endMultiwrite.*/
